@@ -1,0 +1,374 @@
+<title>Spelling Race Hobbies</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: race track with one lane per team across the top, current team's spelling panel below; setup and podium screens reuse the panel */
+:root{
+  --bg:#eef2f7; --card:#ffffff; --ink:#1c2433; --muted:#5e6a7d; --line:#d5dde8;
+  --road:#4a5263; --roadLine:#f4f6fa; --accent:#f2a93b; --good:#2fa565; --bad:#e04f45;
+  --t1:#e4553f; --t2:#2f7fd8; --t3:#e7a51c; --t4:#8a55d6;
+  --display:"Baloo 2","Comic Sans MS",system-ui,sans-serif; --body:"Nunito",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11151d; --card:#1a202b; --ink:#e8edf5; --muted:#9aa6b8; --line:#2f3847; --road:#2b3240; --roadLine:#8792a5; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11151d; --card:#1a202b; --ink:#e8edf5; --muted:#9aa6b8; --line:#2f3847; --road:#2b3240; --roadLine:#8792a5; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,4vw,2.3rem);margin:0;line-height:1.1}
+h1 span{color:var(--t1)}
+.brand{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:16px}
+.btn{font-family:var(--display);font-weight:700;font-size:1.05rem;border:0;border-radius:12px;padding:10px 18px;cursor:pointer;background:var(--accent);color:#2b1a00}
+.btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
+.btn.big{font-size:1.3rem;padding:12px 26px}
+.btn:disabled{opacity:.45;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* track */
+.track{display:flex;flex-direction:column;gap:8px;background:var(--road);border-radius:18px;padding:12px}
+.lane{display:grid;grid-template-columns:minmax(70px,120px) minmax(0,1fr);gap:8px;align-items:center}
+.lane .name{font-family:var(--display);font-weight:800;color:#fff;border-radius:10px;padding:4px 8px;font-size:clamp(.8rem,2.2vw,1rem);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.lane.active .name{outline:3px solid #fff;outline-offset:2px}
+.cells{position:relative;display:grid;gap:3px;height:clamp(40px,7vw,58px)}
+.cell{border-radius:8px;background:rgba(255,255,255,.08);border-bottom:3px dashed var(--roadLine);display:flex;align-items:center;justify-content:center;
+  font-size:clamp(.8rem,2.4vw,1.2rem);min-width:0}
+.cell.finish{background:repeating-conic-gradient(#fff 0 25%,#222 0 50%) 0 0/14px 14px;border:0}
+.cell.lucky{background:rgba(242,169,59,.25)}
+.bike{position:absolute;top:50%;font-size:clamp(1.5rem,4.6vw,2.4rem);line-height:1;transform:translate(-50%,-55%);transition:left .55s cubic-bezier(.3,1.4,.6,1);pointer-events:none}
+.bike i{display:inline-block;transform:scaleX(-1);font-style:normal}
+.bike b{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);width:70%;height:6px;border-radius:4px}
+
+/* play panel */
+.play{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px}
+@media (max-width:820px){.play{grid-template-columns:1fr}}
+.turn{display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
+.turnTeam{font-family:var(--display);font-weight:800;font-size:1.5rem;color:#fff;border-radius:12px;padding:4px 16px}
+.emoji{font-size:4rem;line-height:1}
+.vi{font-family:var(--display);font-weight:800;font-size:1.6rem;line-height:1.1}
+.sub{color:var(--muted);font-weight:700}
+.timer{width:100%;height:12px;background:var(--line);border-radius:99px;overflow:hidden}
+.timer div{height:100%;background:var(--good);transition:width 1s linear,background .3s}
+.timeTxt{font-family:var(--display);font-weight:800;font-size:1.2rem;font-variant-numeric:tabular-nums}
+.spell{display:flex;flex-direction:column;gap:12px;min-width:0}
+.word{display:flex;flex-wrap:wrap;gap:12px 20px;justify-content:center;min-height:62px;align-items:flex-end}
+.wgroup{display:flex;gap:5px}
+.slot{width:clamp(28px,6vw,44px);height:clamp(38px,8vw,54px);border-bottom:4px solid var(--ink);display:flex;align-items:flex-end;justify-content:center;
+  font-family:var(--display);font-weight:800;font-size:clamp(1.4rem,4.5vw,2.2rem);text-transform:uppercase;line-height:1}
+.slot.cur{border-color:var(--accent)}
+.slot.ok{color:var(--good)} .slot.no{color:var(--bad)}
+.keys{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px}
+.keys.tiles{grid-template-columns:repeat(auto-fit,minmax(48px,1fr))}
+@media (max-width:480px){.keys{grid-template-columns:repeat(7,minmax(0,1fr))}}
+.k{font-family:var(--display);font-weight:800;font-size:1.3rem;text-transform:uppercase;background:var(--card);color:var(--ink);
+  border:2px solid var(--line);border-bottom-width:4px;border-radius:10px;padding:8px 0;cursor:pointer}
+.k:disabled{opacity:.25;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center}
+.msg{min-height:1.5em;text-align:center;font-family:var(--display);font-weight:800;font-size:1.35rem}
+.msg.win{color:var(--good)} .msg.lose{color:var(--bad)} .msg.lucky{color:var(--accent)}
+
+/* setup */
+.setup{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label,.field>.lab{font-weight:800;color:var(--muted);font-size:.9rem;text-transform:uppercase;letter-spacing:.05em}
+select,input[type=text]{font-family:var(--body);font-weight:800;font-size:1rem;border:2px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--card);color:var(--ink);width:100%}
+.teamIn{display:flex;gap:8px;align-items:center}
+.teamIn span{width:18px;height:18px;border-radius:50%;flex:none}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{font-family:var(--display);font-weight:800;font-size:1rem;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.rules{margin:0;padding-left:1.2em;color:var(--muted);font-weight:700;line-height:1.6;max-width:65ch}
+.podium{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.podium .big{font-family:var(--display);font-weight:800;font-size:2.4rem;line-height:1.1}
+.rank{display:flex;flex-direction:column;gap:6px;width:100%;max-width:420px}
+.rank div{display:flex;justify-content:space-between;gap:10px;border-radius:12px;padding:8px 14px;color:#fff;font-weight:800;font-family:var(--display);font-size:1.15rem}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">Queen English Center · Spelling</div>
+      <h1>Spelling <span>Race</span> 🚴</h1>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="restart" type="button" hidden>⚙️ Cài đặt lại</button>
+    </div>
+  </header>
+
+  <section class="track" id="track" aria-label="Đường đua"></section>
+
+  <!-- SETUP -->
+  <section class="card" id="setup">
+    <div class="setup">
+      <div class="field">
+        <div class="lab">Số đội</div>
+        <div class="seg" id="segTeams"></div>
+        <div id="teamNames" class="field"></div>
+      </div>
+      <div class="field">
+        <div class="lab">Độ dài đường đua</div>
+        <div class="seg" id="segLen"></div>
+        <div class="lab">Cách đánh vần</div>
+        <div class="seg" id="segMode"></div>
+        <div class="lab">Thời gian mỗi lượt</div>
+        <div class="seg" id="segTime"></div>
+      </div>
+      <div class="field">
+        <div class="lab">Luật chơi</div>
+        <ul class="rules">
+          <li>Các đội lần lượt đánh vần từ theo hình và nghĩa.</li>
+          <li>Đúng: xe tiến 1 ô. Đúng nhanh (còn từ một nửa thời gian trở lên): <b>Turbo +2 ô</b>.</li>
+          <li>Đỗ vào ô 🎁: được thêm ô, hoặc đổi chỗ với đội đang dẫn đầu.</li>
+          <li>Đội nào về 🏁 trước thì thắng.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn big" id="go" type="button">🏁 Bắt đầu đua</button></div>
+  </section>
+
+  <!-- PLAY -->
+  <section class="play" id="play" hidden>
+    <div class="card turn">
+      <div class="turnTeam" id="turnTeam">Đội 1</div>
+      <div class="emoji" id="emoji">⚽</div>
+      <div class="vi" id="vi">đá</div>
+      <div class="sub" id="sub">4 chữ cái</div>
+      <div class="row"><button class="btn ghost" id="speak" type="button">🔊 Nghe</button></div>
+      <div class="timer" id="timerBox"><div id="timerBar"></div></div>
+      <div class="timeTxt" id="timeTxt"></div>
+    </div>
+    <div class="card spell">
+      <div class="word" id="word" aria-live="polite"></div>
+      <div class="msg" id="msg"></div>
+      <div class="keys" id="keys"></div>
+      <div class="row" id="actRow">
+        <button class="btn ghost" id="back" type="button">⌫ Xóa</button>
+        <button class="btn ghost" id="clear" type="button">↺ Làm lại</button>
+        <button class="btn" id="check" type="button">✔ Kiểm tra</button>
+      </div>
+      <div class="row"><button class="btn big" id="next" type="button" hidden>Đội tiếp theo ➜</button></div>
+    </div>
+  </section>
+
+  <!-- PODIUM -->
+  <section class="card podium" id="podium" hidden>
+    <div class="big" id="winTitle">🏆</div>
+    <div class="rank" id="rank"></div>
+    <div class="row"><button class="btn big" id="again" type="button">🔄 Đua lại</button><button class="btn ghost" id="toSetup" type="button">⚙️ Đổi cài đặt</button></div>
+  </section>
+</div>
+
+<script>
+const WORDS=[
+  {en:"bounce a ball",vi:"đập bóng nảy",e:"🏀"},
+  {en:"catch a ball",vi:"bắt bóng",e:"🧤"},
+  {en:"favorite",vi:"yêu thích nhất",e:"❤️"},
+  {en:"hobby",vi:"sở thích",e:"🎨"},
+  {en:"throw",vi:"ném",e:"🤾"},
+  {en:"ride",vi:"đạp xe, cưỡi",e:"🚲"},
+  {en:"swim",vi:"bơi",e:"🏊"},
+  {en:"kick",vi:"đá",e:"⚽"},
+  {en:"play",vi:"chơi",e:"🎮"},
+  {en:"watch",vi:"xem",e:"📺"}
+];
+const COLORS=["--t1","--t2","--t3","--t4"];
+const DEF_NAMES=["Đội Đỏ","Đội Xanh","Đội Vàng","Đội Tím"];
+const $=id=>document.getElementById(id);
+const cfg={teams:2,len:7,mode:"tiles",time:30,names:DEF_NAMES.slice()};
+let teams,cur,pool,word,seq,input,tiles,lucky,timeLeft,timer,phase="setup";
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function speak(t){try{const u=new SpeechSynthesisUtterance(t);u.lang="en-US";u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function col(i){return "var("+COLORS[i]+")"}
+
+/* ---------- setup ---------- */
+function seg(id,opts,key,after){
+  const el=$(id);el.innerHTML="";
+  opts.forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.textContent=l;b.setAttribute("aria-pressed",cfg[key]===v);
+    b.onclick=()=>{cfg[key]=v;seg(id,opts,key,after);after&&after()};el.appendChild(b)});
+}
+function renderNames(){
+  const box=$("teamNames");box.innerHTML="";
+  for(let i=0;i<cfg.teams;i++){
+    const d=document.createElement("div");d.className="teamIn";
+    d.innerHTML='<span style="background:'+col(i)+'"></span><input type="text" id="tn'+i+'" maxlength="14" aria-label="Tên đội '+(i+1)+'">';
+    box.appendChild(d);const inp=d.querySelector("input");inp.value=cfg.names[i];
+    inp.oninput=()=>{cfg.names[i]=inp.value||DEF_NAMES[i];previewTrack()};
+  }
+  previewTrack();
+}
+function renderSetup(){
+  seg("segTeams",[[2,"2"],[3,"3"],[4,"4"]],"teams",renderNames);
+  seg("segLen",[[5,"Ngắn · 5"],[7,"Vừa · 7"],[10,"Dài · 10"]],"len",previewTrack);
+  seg("segMode",[["tiles","🧩 Xếp chữ (dễ)"],["type","⌨️ Gõ tự do (khó)"]],"mode");
+  seg("segTime",[[0,"Không giới hạn"],[30,"30 giây"],[20,"20 giây"]],"time");
+  renderNames();
+}
+function makeLucky(){
+  const n=cfg.len>=10?3:cfg.len>=7?2:1, c=shuffle(Array.from({length:cfg.len-2},(_,i)=>i+2)).slice(0,n);
+  return new Set(c);
+}
+function previewTrack(){
+  if(phase!=="setup")return;
+  teams=cfg.names.slice(0,cfg.teams).map((n,i)=>({name:n,pos:0,c:i,ok:0}));lucky=new Set();cur=-1;renderTrack();
+}
+
+/* ---------- track ---------- */
+function renderTrack(){
+  const t=$("track");t.innerHTML="";
+  teams.forEach((tm,i)=>{
+    const lane=document.createElement("div");lane.className="lane"+(i===cur?" active":"");
+    let cells="";for(let s=0;s<=cfg.len;s++){
+      const cls=s===cfg.len?"finish":lucky.has(s)?"lucky":"";
+      cells+='<div class="cell '+cls+'">'+(s===cfg.len?"":lucky.has(s)?"🎁":s===0?"🚦":"")+'</div>'}
+    lane.innerHTML='<div class="name" style="background:'+col(tm.c)+'">'+esc(tm.name)+'</div>'+
+      '<div class="cells" style="grid-template-columns:repeat('+(cfg.len+1)+',minmax(0,1fr))">'+cells+
+      '<div class="bike" id="bike'+i+'"><i>🚴</i><b style="background:'+col(tm.c)+'"></b></div></div>';
+    t.appendChild(lane);
+  });
+  teams.forEach((tm,i)=>placeBike(i));
+}
+function placeBike(i){const b=$("bike"+i);if(b)b.style.left=((teams[i].pos+.5)/(cfg.len+1)*100)+"%"}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+/* ---------- game ---------- */
+function startRace(){
+  phase="play";
+  teams=cfg.names.slice(0,cfg.teams).map((n,i)=>({name:n.trim()||DEF_NAMES[i],pos:0,c:i,ok:0}));
+  lucky=makeLucky(); pool=[]; cur=-1;
+  $("setup").hidden=true;$("podium").hidden=true;$("play").hidden=false;$("restart").hidden=false;
+  nextTurn();
+}
+function drawWord(){if(!pool.length)pool=shuffle(WORDS);return pool.shift()}
+function nextTurn(){
+  cur=(cur+1)%teams.length; word=drawWord(); seq=word.en.replace(/ /g,""); input=[];
+  phase="play";
+  $("turnTeam").textContent="🚴 "+teams[cur].name;$("turnTeam").style.background=col(teams[cur].c);
+  $("emoji").textContent=word.e;$("vi").textContent=word.vi;
+  const parts=word.en.split(" ").length;
+  $("sub").textContent=seq.length+" chữ cái"+(parts>1?" · "+parts+" từ":"");
+  setMsg("");$("next").hidden=true;$("actRow").hidden=false;
+  buildKeys();renderWord();renderTrack();startTimer();
+}
+function buildKeys(){
+  const k=$("keys");k.innerHTML="";
+  if(cfg.mode==="tiles"){
+    k.className="keys tiles";
+    let order=shuffle(seq.split("").map((c,i)=>({c,i})));
+    if(order.map(o=>o.c).join("")===seq&&seq.length>1)order=order.reverse();
+    tiles=order;
+    order.forEach((o,ti)=>{const b=document.createElement("button");b.type="button";b.className="k";b.textContent=o.c;b.id="tile"+ti;
+      b.onclick=()=>add(o.c,ti);k.appendChild(b)});
+  }else{
+    k.className="keys";tiles=null;
+    "abcdefghijklmnopqrstuvwxyz".split("").forEach(c=>{const b=document.createElement("button");b.type="button";b.className="k";b.textContent=c;
+      b.onclick=()=>add(c);k.appendChild(b)});
+  }
+}
+function add(c,ti){
+  if(phase!=="play"||input.length>=seq.length)return;
+  if(cfg.mode==="tiles"){
+    if(ti===undefined){ti=tiles.findIndex((o,i)=>o.c===c&&!input.some(x=>x.ti===i));if(ti<0)return}
+    if(input.some(x=>x.ti===ti))return; $("tile"+ti).disabled=true;
+  }
+  input.push({c,ti});renderWord();
+  if(cfg.mode==="tiles"&&input.length===seq.length)check();
+}
+function back(){if(phase!=="play")return;const x=input.pop();if(x&&x.ti!==undefined)$("tile"+x.ti).disabled=false;renderWord()}
+function clearIn(){while(input.length)back()}
+function renderWord(result){
+  const w=$("word");w.innerHTML="";let k=0;
+  word.en.split(" ").forEach(part=>{
+    const g=document.createElement("div");g.className="wgroup";
+    part.split("").forEach(()=>{
+      const s=document.createElement("div");s.className="slot";
+      if(result==="ok"){s.textContent=seq[k];s.classList.add("ok")}
+      else if(result==="no"){s.textContent=seq[k];s.classList.add(input[k]&&input[k].c===seq[k]?"ok":"no")}
+      else{if(input[k])s.textContent=input[k].c;if(k===input.length)s.classList.add("cur")}
+      g.appendChild(s);k++;
+    });w.appendChild(g);
+  });
+}
+function startTimer(){
+  clearInterval(timer);
+  if(!cfg.time){$("timerBox").hidden=true;$("timeTxt").textContent="";return}
+  $("timerBox").hidden=false;timeLeft=cfg.time;updTimer();
+  timer=setInterval(()=>{timeLeft--;updTimer();if(timeLeft<=0){clearInterval(timer);fail("⏰ Hết giờ!")}},1000);
+}
+function updTimer(){
+  const p=timeLeft/cfg.time*100,bar=$("timerBar");bar.style.width=p+"%";
+  bar.style.background=p>50?"var(--good)":p>25?"var(--accent)":"var(--bad)";
+  $("timeTxt").textContent="⏱ "+timeLeft+" giây"+(cfg.time&&timeLeft*2>=cfg.time?" · ⚡ Turbo":"");
+}
+function setMsg(t,c){$("msg").textContent=t;$("msg").className="msg "+(c||"")}
+function check(){
+  if(phase!=="play")return;
+  if(input.length<seq.length){setMsg("Còn thiếu "+(seq.length-input.length)+" chữ!","lose");return}
+  clearInterval(timer);
+  if(input.map(x=>x.c).join("")===seq){
+    const turbo=cfg.time&&timeLeft*2>=cfg.time, step=turbo?2:1;
+    teams[cur].ok++; renderWord("ok"); speak(word.en);
+    setMsg((turbo?"⚡ TURBO! ":"🎉 Đúng rồi! ")+"+"+step+" ô","win");
+    move(cur,step,()=>afterMove());
+  }else fail("❌ Chưa đúng!");
+}
+function fail(t){
+  phase="result";renderWord("no");speak(word.en);setMsg(t+" Từ đúng: "+word.en.toUpperCase(),"lose");
+  pool.push(word); endTurn();
+}
+function move(i,step,cb){
+  phase="result";
+  teams[i].pos=Math.min(cfg.len,teams[i].pos+step);placeBike(i);setTimeout(cb,650);
+}
+function afterMove(){
+  const tm=teams[cur];
+  if(tm.pos>=cfg.len)return finish(cur);
+  if(lucky.has(tm.pos)){
+    lucky.delete(tm.pos);
+    const leader=teams.reduce((a,b,i)=>b.pos>teams[a].pos?i:a,cur);
+    const opts=["plus1","plus2","nothing"]; if(leader!==cur&&teams[leader].pos>tm.pos)opts.push("swap","swap");
+    const r=opts[Math.floor(Math.random()*opts.length)];
+    renderTrack();
+    if(r==="plus1"){setMsg("🎁 Hộp quà: tiến thêm 1 ô!","lucky");return move(cur,1,()=>{tm.pos>=cfg.len?finish(cur):endTurn()})}
+    if(r==="plus2"){setMsg("🎁 Hộp quà: tiến thêm 2 ô!","lucky");return move(cur,2,()=>{tm.pos>=cfg.len?finish(cur):endTurn()})}
+    if(r==="swap"){const L=teams[leader],p=L.pos;L.pos=tm.pos;tm.pos=p;
+      setMsg("🎁 Hộp quà: đổi chỗ với "+L.name+"!","lucky");placeBike(cur);placeBike(leader);return setTimeout(endTurn,650)}
+    setMsg("🎁 Hộp quà trống, chúc may mắn lần sau!","lucky");
+  }
+  endTurn();
+}
+function endTurn(){
+  phase="result";$("actRow").hidden=true;$("next").hidden=false;
+  document.querySelectorAll(".k").forEach(k=>k.disabled=true);
+  const n=teams[(cur+1)%teams.length].name;$("next").textContent="Lượt của "+n+" ➜";$("next").focus();
+}
+function finish(i){
+  phase="win";clearInterval(timer);
+  setTimeout(()=>{
+    $("play").hidden=true;$("podium").hidden=false;
+    $("winTitle").textContent="🏆 "+teams[i].name+" về nhất!";
+    const r=teams.map((t,k)=>({...t,k})).sort((a,b)=>(b.k===i)-(a.k===i)||b.pos-a.pos||b.ok-a.ok);
+    $("rank").innerHTML=r.map((t,n)=>'<div style="background:'+col(t.c)+'"><span>'+["🥇","🥈","🥉","4️⃣"][n]+" "+esc(t.name)+'</span><span>'+t.ok+' từ đúng</span></div>').join("");
+  },700);
+}
+function toSetup(){clearInterval(timer);phase="setup";$("play").hidden=true;$("podium").hidden=true;$("setup").hidden=false;$("restart").hidden=true;renderSetup()}
+
+$("go").onclick=startRace;$("again").onclick=startRace;$("toSetup").onclick=toSetup;$("restart").onclick=toSetup;
+$("check").onclick=check;$("back").onclick=back;$("clear").onclick=clearIn;$("next").onclick=nextTurn;
+$("speak").onclick=()=>word&&speak(word.en);
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT")return;
+  if(e.target.tagName==="BUTTON"&&(e.key==="Enter"||e.key===" "))return;
+  if(phase==="play"){
+    if(/^[a-zA-Z]$/.test(e.key)&&!e.ctrlKey&&!e.metaKey)add(e.key.toLowerCase());
+    else if(e.key==="Backspace"){e.preventDefault();back()}
+    else if(e.key==="Enter"){e.preventDefault();check()}
+  }else if(phase==="result"&&e.key==="Enter"&&!$("next").hidden){e.preventDefault();nextTurn()}
+});
+renderSetup();
+</script>
